@@ -1,6 +1,6 @@
 spring:
   application:
-    name: rental
+    name: ms-advertise
 ---
 spring:
   profiles: cloud
