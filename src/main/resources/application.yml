@@ -1,0 +1,10 @@
+logging.level.com.vylla.advertising: DEBUG
+
+server:
+  port: 9000
+  contextPath: /rental
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://192.168.99.100:27017/advertising

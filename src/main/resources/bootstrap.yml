@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: rental
+---
+spring:
+  profiles: cloud
+  cloud:
+    config:
+      uri: ${CONFIG_SERVER_URL:http://localhost:8888}
+      label: services
