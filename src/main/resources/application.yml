@@ -1,4 +1,4 @@
-logging.level.com.vylla.advertising: DEBUG
+logging.level.com.valtech.advertising: DEBUG
 
 server:
   port: 9000
