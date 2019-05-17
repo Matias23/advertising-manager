@@ -2,6 +2,11 @@ package com.valtech.advertising.controller;
 
 import com.valtech.advertising.dto.Advertising;
 import com.valtech.advertising.dto.CreateAdvertisingRequest;
+import com.valtech.advertising.dto.Gender;
+import com.valtech.advertising.dto.Segmentation;
+import com.valtech.advertising.service.domain.AdvertisingEntity;
+import com.valtech.advertising.service.domain.SegmentationEntity;
+import com.valtech.advertising.service.mapper.AdvertisingMapper;
 import com.valtech.advertising.service.repository.AdvertisingRepository;
 import org.junit.Assert;
 import org.junit.Before;
@@ -10,6 +15,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -18,6 +25,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import static org.hamcrest.Matchers.greaterThan;
 
@@ -44,9 +52,22 @@ public class AdvertisingControllerTest {
                 createAdvertisingRequest, Advertising.class);
     }
 
-    private ResponseEntity<Advertising> getAdvertising(String advertisingId) {
-        return restTemplate.getForEntity(String.format("http://localhost:%s/v1/advertisings/{advertisingId}", port),
-                Advertising.class, advertisingId);
+    private ResponseEntity<List<Advertising>> getAdvertisingList(String country, Integer age, Gender gender) {
+        String url = String.format("http://localhost:%s/v1/advertisings", port);
+        if (country != null || age != null || gender != null) {
+            url += "?";
+            if (country != null) {
+                url = url.concat("country=").concat(country).concat("&");
+            }
+            if (age != null) {
+                url = url.concat("age=").concat(age.toString()).concat("&");
+            }
+            if (gender != null) {
+                url = url.concat("gender=").concat(gender.name()).concat("&");
+            }
+            url = url.substring(0, url.length()-1);
+        }
+        return restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Advertising>>(){}, country, age, gender);
     }
 
     @Test
@@ -93,6 +114,7 @@ public class AdvertisingControllerTest {
         cal.set(Calendar.MONTH, Calendar.JANUARY);
         cal.set(Calendar.DAY_OF_MONTH, 1);
         Date oldDate = cal.getTime();
+        Segmentation invalidSegmentation = Segmentation.builder().age(-5).build();
         CreateAdvertisingRequest advertisingRequest = CreateAdvertisingRequest
                 .builder()
                 .printCost(-2)
@@ -100,6 +122,7 @@ public class AdvertisingControllerTest {
                 .endDate(oldDate)
                 .title("")
                 .description("")
+                .segmentation(invalidSegmentation)
                 .build();
         try {
             postAdvertising(advertisingRequest);
@@ -117,24 +140,56 @@ public class AdvertisingControllerTest {
                     e.getResponseBodyAsString().contains("title is required"));
             Assert.assertTrue("description was blank",
                     e.getResponseBodyAsString().contains("description is required"));
+            Assert.assertTrue("age was invalid",
+                    e.getResponseBodyAsString().contains("age should be greater than 0"));
         }
     }
 
     @Test
-    public void getAdvertising() {
-        CreateAdvertisingRequest advertisingRequest = buildDummyAdvertisingRequest();
-        Advertising advertising = postAdvertising(advertisingRequest).getBody();
+    public void getAdvertisingListFilteredByGender() {
+        loadRepository();
+        ResponseEntity<List<Advertising>> response =  getAdvertisingList(null, null, Gender.Male);
+        Assert.assertEquals("Response status doesn't match", HttpStatus.OK, response.getStatusCode());
+        Assert.assertEquals("Advertising list size doesn't match",
+                3, response.getBody().size());
+        for(Advertising ad : response.getBody()) {
+            Assert.assertEquals("Advertising gender doesn't match",
+                    Gender.Male, ad.getSegmentation().getGender());
+        }
+    }
 
-        ResponseEntity<Advertising> getResponse =  getAdvertising(advertising.getAdvertisingId());
-        Assert.assertEquals("Response status doesn't match", HttpStatus.OK, getResponse.getStatusCode());
-        Assert.assertEquals("Advertising print cost doesn't match",
-                advertisingRequest.getPrintCost(), getResponse.getBody().getPrintCost());
+    @Test
+    public void getAdvertisingListFilteredByAge() {
+        loadRepository();
+        ResponseEntity<List<Advertising>> response =  getAdvertisingList(null, 26, null);
+
+        Assert.assertEquals("Response status doesn't match", HttpStatus.OK, response.getStatusCode());
+        Assert.assertEquals("Advertising list size doesn't match",
+                2, response.getBody().size());
+        for(Advertising ad : response.getBody()) {
+            Assert.assertEquals("Advertising age doesn't match",
+                    new Integer(26), ad.getSegmentation().getAge());
+        }
+    }
+
+    @Test
+    public void getAdvertisingListFilteredByCountry() {
+        loadRepository();
+        ResponseEntity<List<Advertising>> response =  getAdvertisingList("USA", null, null);
+
+        Assert.assertEquals("Response status doesn't match", HttpStatus.OK, response.getStatusCode());
+        Assert.assertEquals("Advertising list size doesn't match",
+                3, response.getBody().size());
+        for(Advertising ad : response.getBody()) {
+            Assert.assertEquals("Advertising country doesn't match",
+                    "USA", ad.getSegmentation().getCountry());
+        }
     }
 
     @Test
     public void getAdvertisingNotFound() {
         try {
-            getAdvertising("invalid_id");
+            getAdvertisingList(null, 50, null);
             Assert.fail("Did not throw");
         } catch (HttpClientErrorException e) {
             Assert.assertEquals("Response status doesn't match", HttpStatus.NOT_FOUND, e.getStatusCode());
@@ -147,6 +202,13 @@ public class AdvertisingControllerTest {
         cal.set(Calendar.MONTH, Calendar.JUNE);
         cal.set(Calendar.DAY_OF_MONTH, 1);
         Date endDate = cal.getTime();
+
+        Segmentation segmentation = Segmentation
+                .builder()
+                .age(26)
+                .country("Argentine")
+                .gender(Gender.Male)
+                .build();
         return CreateAdvertisingRequest
                 .builder()
                 .printCost(5)
@@ -154,7 +216,48 @@ public class AdvertisingControllerTest {
                 .endDate(endDate)
                 .title("Advertise")
                 .description("Test advertise")
+                .segmentation(segmentation)
                 .build();
+    }
+
+    private void loadRepository() {
+        AdvertisingEntity entity = AdvertisingMapper.requestToEntity(buildDummyAdvertisingRequest());
+        repository.save(entity);
+
+        SegmentationEntity segmentation = SegmentationEntity
+                .builder()
+                .age(26)
+                .country("USA")
+                .gender(Gender.Male)
+                .build();
+        saveEntityForNewSegmentation(entity, segmentation);
+
+        segmentation = SegmentationEntity.builder()
+                .age(29)
+                .country("USA")
+                .gender(Gender.Female)
+                .build();
+        saveEntityForNewSegmentation(entity, segmentation);
+
+        segmentation = SegmentationEntity.builder()
+                .age(29)
+                .country("Argentine")
+                .gender(Gender.Female)
+                .build();
+        saveEntityForNewSegmentation(entity, segmentation);
+
+        segmentation = SegmentationEntity.builder()
+                .age(30)
+                .country("USA")
+                .gender(Gender.Male)
+                .build();
+        saveEntityForNewSegmentation(entity, segmentation);
+    }
+
+    private void saveEntityForNewSegmentation(AdvertisingEntity entity, SegmentationEntity newSegmentation) {
+        entity.setAdvertisingId(null);
+        entity.setSegmentation(newSegmentation);
+        repository.save(entity);
     }
 
 }

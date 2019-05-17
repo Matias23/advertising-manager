@@ -25,4 +25,6 @@ public class Advertising {
 
     private String description;
 
+    private Segmentation segmentation;
+
 }

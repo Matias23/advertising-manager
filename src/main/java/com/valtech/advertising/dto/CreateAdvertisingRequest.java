@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.Valid;
 import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -38,5 +39,8 @@ public class CreateAdvertisingRequest {
 
     @NotBlank(message = "description is required")
     private String description;
+
+    @Valid
+    private Segmentation segmentation;
 
 }

@@ -36,4 +36,7 @@ public class AdvertisingEntity {
     @Field(value = "description")
     private String description;
 
+    @Field(value = "segmentation")
+    private SegmentationEntity segmentation;
+
 }
