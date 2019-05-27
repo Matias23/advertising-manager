@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
@@ -42,18 +43,30 @@ public class AdvertisingControllerTest {
     @Autowired
     protected AdvertisingRepository repository;
 
+    @Value("${baseUrl}")
+    private String BASE_URL;
+
+    @Value("${message.listSize}")
+    private String LIST_SIZE_MESSAGE;
+
+    @Value("${message.notThrown}")
+    private String NOT_THROWN_MESSAGE;
+
+    @Value("${message.responseStatus}")
+    private String RESPONSE_STATUS_MESSAGE;
+
     @Before
     public void setUp() {
         repository.deleteAll();
     }
 
     private ResponseEntity<Advertising> postAdvertising(CreateAdvertisingRequest createAdvertisingRequest) {
-        return restTemplate.postForEntity(String.format("http://localhost:%s/v1/advertisings", port),
+        return restTemplate.postForEntity(String.format(BASE_URL, port),
                 createAdvertisingRequest, Advertising.class);
     }
 
     private ResponseEntity<List<Advertising>> getAdvertisingList(String country, Integer age, Gender gender) {
-        String url = String.format("http://localhost:%s/v1/advertisings", port);
+        String url = String.format(BASE_URL, port);
         if (country != null || age != null || gender != null) {
             url += "?";
             if (country != null) {
@@ -80,7 +93,7 @@ public class AdvertisingControllerTest {
         CreateAdvertisingRequest advertisingRequest = buildDummyAdvertisingRequest();
         ResponseEntity<Advertising> response = postAdvertising(advertisingRequest);
 
-        Assert.assertEquals("Response status doesn't match", HttpStatus.CREATED, response.getStatusCode());
+        Assert.assertEquals(RESPONSE_STATUS_MESSAGE, HttpStatus.CREATED, response.getStatusCode());
     }
 
     @Test
@@ -90,9 +103,9 @@ public class AdvertisingControllerTest {
                 .build();
         try {
             postAdvertising(advertisingRequest);
-            Assert.fail("Did not throw");
+            Assert.fail(NOT_THROWN_MESSAGE);
         } catch (HttpClientErrorException e) {
-            Assert.assertEquals(String.format("Custom constrain validation: %s", "Response status don't match"),
+            Assert.assertEquals(String.format("Custom constrain validation: %s", RESPONSE_STATUS_MESSAGE),
                     HttpStatus.BAD_REQUEST, e.getStatusCode());
             Assert.assertTrue("printCost is required and was not present",
                     e.getResponseBodyAsString().contains("print cost is required"));
@@ -120,15 +133,15 @@ public class AdvertisingControllerTest {
                 .printCost(-2)
                 .maxCost(-3)
                 .endDate(oldDate)
-                .title("")
-                .description("")
+                .title("some title")
+                .description("some desc")
                 .segmentation(invalidSegmentation)
                 .build();
         try {
             postAdvertising(advertisingRequest);
-            Assert.fail("Did not throw");
+            Assert.fail(NOT_THROWN_MESSAGE);
         } catch (HttpClientErrorException e) {
-            Assert.assertEquals(String.format("Custom constrain validation: %s", "Response status don't match"),
+            Assert.assertEquals(String.format("Custom constrain validation: %s", RESPONSE_STATUS_MESSAGE),
                     HttpStatus.BAD_REQUEST, e.getStatusCode());
             Assert.assertTrue("Print cost was too low",
                     e.getResponseBodyAsString().contains("print cost should be greater than 0"));
@@ -136,10 +149,6 @@ public class AdvertisingControllerTest {
                     e.getResponseBodyAsString().contains("max cost should be greater than 0"));
             Assert.assertTrue("end date cost was too soon",
                     e.getResponseBodyAsString().contains("endDate should be later than today"));
-            Assert.assertTrue("title was blank",
-                    e.getResponseBodyAsString().contains("title is required"));
-            Assert.assertTrue("description was blank",
-                    e.getResponseBodyAsString().contains("description is required"));
             Assert.assertTrue("age was invalid",
                     e.getResponseBodyAsString().contains("age should be greater than 0"));
         }
@@ -149,8 +158,8 @@ public class AdvertisingControllerTest {
     public void getAdvertisingListFilteredByGender() {
         loadRepository();
         ResponseEntity<List<Advertising>> response =  getAdvertisingList(null, null, Gender.Male);
-        Assert.assertEquals("Response status doesn't match", HttpStatus.OK, response.getStatusCode());
-        Assert.assertEquals("Advertising list size doesn't match",
+        Assert.assertEquals(RESPONSE_STATUS_MESSAGE, HttpStatus.OK, response.getStatusCode());
+        Assert.assertEquals(LIST_SIZE_MESSAGE,
                 3, response.getBody().size());
         for(Advertising ad : response.getBody()) {
             Assert.assertEquals("Advertising gender doesn't match",
@@ -163,8 +172,8 @@ public class AdvertisingControllerTest {
         loadRepository();
         ResponseEntity<List<Advertising>> response =  getAdvertisingList(null, 26, null);
 
-        Assert.assertEquals("Response status doesn't match", HttpStatus.OK, response.getStatusCode());
-        Assert.assertEquals("Advertising list size doesn't match",
+        Assert.assertEquals(RESPONSE_STATUS_MESSAGE, HttpStatus.OK, response.getStatusCode());
+        Assert.assertEquals(LIST_SIZE_MESSAGE,
                 2, response.getBody().size());
         for(Advertising ad : response.getBody()) {
             Assert.assertEquals("Advertising age doesn't match",
@@ -177,8 +186,8 @@ public class AdvertisingControllerTest {
         loadRepository();
         ResponseEntity<List<Advertising>> response =  getAdvertisingList("USA", null, null);
 
-        Assert.assertEquals("Response status doesn't match", HttpStatus.OK, response.getStatusCode());
-        Assert.assertEquals("Advertising list size doesn't match",
+        Assert.assertEquals(RESPONSE_STATUS_MESSAGE, HttpStatus.OK, response.getStatusCode());
+        Assert.assertEquals(LIST_SIZE_MESSAGE,
                 3, response.getBody().size());
         for(Advertising ad : response.getBody()) {
             Assert.assertEquals("Advertising country doesn't match",
@@ -190,9 +199,9 @@ public class AdvertisingControllerTest {
     public void getAdvertisingNotFound() {
         try {
             getAdvertisingList(null, 50, null);
-            Assert.fail("Did not throw");
+            Assert.fail(NOT_THROWN_MESSAGE);
         } catch (HttpClientErrorException e) {
-            Assert.assertEquals("Response status doesn't match", HttpStatus.NOT_FOUND, e.getStatusCode());
+            Assert.assertEquals(RESPONSE_STATUS_MESSAGE, HttpStatus.NOT_FOUND, e.getStatusCode());
         }
     }
 

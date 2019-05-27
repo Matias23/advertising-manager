@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import javax.validation.Valid;
 import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
 
@@ -34,10 +33,10 @@ public class CreateAdvertisingRequest {
         return endDate == null || endDate.after(new Date());
     }
 
-    @NotBlank(message = "title is required")
+    @NotNull(message = "title is required")
     private String title;
 
-    @NotBlank(message = "description is required")
+    @NotNull(message = "description is required")
     private String description;
 
     @Valid

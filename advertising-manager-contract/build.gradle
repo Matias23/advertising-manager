@@ -1,0 +1,18 @@
+plugins {
+    id 'java'
+}
+
+group 'com.valtech'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.projectlombok:lombok:1.18.8'
+    compile group: 'javax.validation', name: 'validation-api', version: '1.0.0.GA'
+    annotationProcessor 'org.projectlombok:lombok:1.18.8'
+}

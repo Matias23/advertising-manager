@@ -1,0 +1,14 @@
+server:
+  port: 9000
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://192.168.99.100:27017/advertising
+
+baseUrl: http://localhost:%s/v1/advertisings
+
+message:
+  listSize: Advertising list size doesn't match
+  notThrown: Did not throw
+  responseStatus: Response status doesn't match

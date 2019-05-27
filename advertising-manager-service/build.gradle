@@ -1,0 +1,123 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath(
+                'org.springframework.boot:spring-boot-gradle-plugin:1.2.5.RELEASE',
+        )
+    }
+}
+
+plugins {
+    id 'org.springframework.boot' version '2.1.3.RELEASE'
+    id 'idea'
+    id 'java'
+}
+
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'pmd'
+apply plugin: 'jacoco'
+
+pmd {
+    toolVersion = '4.3'
+    ruleSets = [
+            "basic",
+            "braces",
+            "naming",
+            "android",
+            "clone",
+            "codesize",
+            "controversial",
+            "design",
+            "finalizers",
+            "imports",
+            "j2ee",
+            "javabeans",
+            "junit",
+            "logging-jakarta-commons",
+            "logging-java",
+            "migrating",
+            "optimizations",
+            "strictexception",
+            "strings",
+            "sunsecure",
+            "typeresolution",
+            "unusedcode"
+    ]
+}
+
+group 'com.valtech'
+version '1.0-SNAPSHOT'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile project(':advertising-manager-contract')
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.springframework:spring-web")
+    compile("org.springframework:spring-webmvc")
+    compile("org.springframework.boot:spring-boot-starter-data-mongodb:2.1.4.RELEASE")
+    compile("org.projectlombok:lombok")
+    compile("io.swagger:swagger-annotations:1.5.15")
+    compile("org.modelmapper:modelmapper:2.1.0")
+    compile("javax.ws.rs:javax.ws.rs-api:2.0")
+    testCompile('org.springframework.boot:spring-boot-starter-test:2.1.4.RELEASE')
+    testCompile("junit:junit")
+    annotationProcessor("org.projectlombok:lombok:1.18.6")
+}
+
+check.dependsOn jacocoTestCoverageVerification
+test.finalizedBy jacocoTestReport
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.8
+            }
+        }
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.8
+            }
+        }
+        rule {
+            limit {
+                counter = 'METHOD'
+                value = 'COVEREDRATIO'
+                minimum = 0.8
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it, excludes: [
+                    '**/config/*',
+                    '**/*Entity.class',
+                    '**/*Application.class',
+                    '**/domain/*',
+                    '**/dto/*'
+            ])
+        })
+    }
+}
+version 'unspecified'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}

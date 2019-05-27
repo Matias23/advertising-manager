@@ -1,6 +1,6 @@
 # MS ADVERTISE #
 
-Microservice to interact with advertises
+Microservice to interact with advertisings
 
 # Development
 
